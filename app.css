@@ -50,6 +50,17 @@ a:hover, .btn-link:hover {
     min-height: calc(100vh - 200px);
 }
 
+/* Remove sidebar layout for GitHub Pages */
+.page {
+    display: block;
+}
+
+main {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 h1:focus {
     outline: none;
 }
