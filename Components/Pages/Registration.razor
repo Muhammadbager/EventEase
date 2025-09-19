@@ -1,0 +1,196 @@
+@page "/register/{id:int}"
+@using EventEase.App.Components
+@using EventEase.App.Components.Models
+@using EventEase.App.Components.Services
+@inject SessionState Session
+@inject AttendanceService Attendance
+@inject NavigationManager Navigation
+
+@if (SelectedEvent is null)
+{
+    <div class="container mt-4">
+        <div class="alert alert-danger">
+            <h3>Event not found</h3>
+            <p>The requested event could not be found.</p>
+            <a href="/events" class="btn btn-secondary">Back to Events</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="h3 mb-0">Register for @SelectedEvent.Name</h1>
+                        <small class="text-muted">@SelectedEvent.Date.ToString("MMMM d, yyyy 'at' h:mm tt") • @SelectedEvent.Location</small>
+                    </div>
+                    <div class="card-body">
+                        @if (IsLoading)
+                        {
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                                <p class="mt-2">Processing your registration...</p>
+                            </div>
+                        }
+                        else if (Submitted)
+                        {
+                            <div class="alert alert-success">
+                                <h4 class="alert-heading">Registration Successful!</h4>
+                                <p>Thank you for registering, <strong>@Model.Name</strong>!</p>
+                                <p>You will receive a confirmation email at <strong>@Model.Email</strong>.</p>
+                                <hr>
+                                <div class="d-flex gap-2">
+                                    <a href="/events" class="btn btn-primary">View All Events</a>
+                                    <a href="/dashboard" class="btn btn-outline-primary">My Dashboard</a>
+                                </div>
+                            </div>
+                        }
+                        else if (AlreadyRegistered)
+                        {
+                            <div class="alert alert-info">
+                                <h4 class="alert-heading">Already Registered</h4>
+                                <p>You are already registered for this event.</p>
+                                <div class="d-flex gap-2">
+                                    <a href="/events" class="btn btn-primary">View All Events</a>
+                                    <a href="/dashboard" class="btn btn-outline-primary">My Dashboard</a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <EditForm Model="Model" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary class="alert alert-danger" />
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Full Name *</label>
+                                        <InputText class="form-control" @bind-Value="Model.Name" placeholder="Enter your full name" />
+                                        <ValidationMessage For="() => Model.Name" class="text-danger" />
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email Address *</label>
+                                        <InputText class="form-control" @bind-Value="Model.Email" placeholder="Enter your email" />
+                                        <ValidationMessage For="() => Model.Email" class="text-danger" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Phone Number</label>
+                                    <InputText class="form-control" @bind-Value="Model.PhoneNumber" placeholder="Enter your phone number (optional)" />
+                                    <ValidationMessage For="() => Model.PhoneNumber" class="text-danger" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Comments or Special Requests</label>
+                                    <InputTextArea class="form-control" @bind-Value="Model.Comments" placeholder="Any special dietary requirements or accessibility needs?" rows="3" />
+                                    <ValidationMessage For="() => Model.Comments" class="text-danger" />
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary" type="submit" disabled="@IsLoading">
+                                        @if (IsLoading)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        }
+                                        Register for Event
+                                    </button>
+                                    <a href="/events/@SelectedEvent.Id" class="btn btn-outline-secondary">Cancel</a>
+                                </div>
+                            </EditForm>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private Event? SelectedEvent;
+    private RegistrationModel Model = new();
+    private bool Submitted = false;
+    private bool IsLoading = false;
+    private bool AlreadyRegistered = false;
+    private string? ErrorMessage;
+
+    protected override void OnInitialized()
+    {
+        var list = GetEventList();
+        SelectedEvent = list.FirstOrDefault(e => e.Id == id);
+        
+        if (SelectedEvent != null)
+        {
+            Model.EventId = SelectedEvent.Id;
+            
+            // Check if user is already registered
+            if (Session.IsLoggedIn && Attendance.IsUserRegistered(Session.CurrentUserEmail!, id))
+            {
+                AlreadyRegistered = true;
+                return;
+            }
+            
+            // Prefill from session
+            if (Session.IsLoggedIn)
+            {
+                Model.Name = Session.CurrentUserName ?? string.Empty;
+                Model.Email = Session.CurrentUserEmail ?? string.Empty;
+                Model.PhoneNumber = Session.CurrentUserPhone;
+            }
+        }
+    }
+
+    private List<Event> GetEventList()
+    {
+        return new List<Event>
+        {
+            new Event { Id = 1, Name = "Tech Conference 2025", Date = DateTime.Now.AddDays(14), Location = "Seattle, WA" },
+            new Event { Id = 2, Name = "Summer Gala", Date = DateTime.Now.AddDays(30), Location = "San Francisco, CA" },
+            new Event { Id = 3, Name = "Startup Meetup", Date = DateTime.Now.AddDays(7), Location = "Austin, TX" },
+            new Event { Id = 4, Name = "Developer Workshop", Date = DateTime.Now.AddDays(21), Location = "New York, NY" },
+            new Event { Id = 5, Name = "Networking Mixer", Date = DateTime.Now.AddDays(45), Location = "Chicago, IL" }
+        };
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+            
+            // Simulate processing time
+            await Task.Delay(1000);
+            
+            // Update session
+            Session.Login(Model.Name, Model.Email, Model.PhoneNumber);
+            Session.RegisterForEvent(Model.EventId);
+            
+            // Update attendance with detailed registration
+            Model.RegistrationDate = DateTime.Now;
+            Model.IsConfirmed = true;
+            Attendance.Register(Model);
+            
+            Submitted = true;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Registration failed: {ex.Message}";
+            IsLoading = false;
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        ErrorMessage = "Please correct the errors below and try again.";
+    }
+}
+

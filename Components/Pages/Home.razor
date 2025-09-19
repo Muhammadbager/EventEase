@@ -1,0 +1,154 @@
+﻿@page "/"
+@using EventEase.App.Components.Services
+@inject SessionState Session
+
+<PageTitle>Home - EventEase</PageTitle>
+
+<div class="hero-section bg-primary text-white py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold">Welcome to EventEase</h1>
+                <p class="lead">Discover, register, and manage your events with ease. Join thousands of attendees at our exciting events!</p>
+                @if (!Session.IsLoggedIn)
+                {
+                    <div class="mt-4">
+                        <a href="/events" class="btn btn-light btn-lg me-3">Browse Events</a>
+                        <a href="/events" class="btn btn-outline-light btn-lg">Get Started</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-4">
+                        <a href="/dashboard" class="btn btn-light btn-lg me-3">My Dashboard</a>
+                        <a href="/events" class="btn btn-outline-light btn-lg">Browse Events</a>
+                    </div>
+                }
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="hero-icon">
+                    <i class="bi bi-calendar-event" style="font-size: 4rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <i class="bi bi-search text-primary" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mt-3">Discover Events</h5>
+                    <p class="card-text">Browse through our curated selection of events. From tech conferences to networking mixers, find events that match your interests.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <i class="bi bi-person-check text-success" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mt-3">Easy Registration</h5>
+                    <p class="card-text">Register for events with our streamlined process. No complicated forms, just simple and secure registration.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <i class="bi bi-graph-up text-info" style="font-size: 2rem;"></i>
+                    <h5 class="card-title mt-3">Track Attendance</h5>
+                    <p class="card-text">Keep track of your event history and attendance. Manage your schedule and never miss an important event.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Session.IsLoggedIn)
+    {
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Quick Stats</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <h3 class="text-primary">@Session.RegisteredEventIds.Count</h3>
+                                <p class="text-muted">Events Registered</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h3 class="text-success">@GetUpcomingEventsCount()</h3>
+                                <p class="text-muted">Upcoming Events</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h3 class="text-info">@GetPastEventsCount()</h3>
+                                <p class="text-muted">Past Events</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h3 class="text-warning">@GetTotalAttendance()</h3>
+                                <p class="text-muted">Total Attendees</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mt-5">
+            <div class="col-12 text-center">
+                <div class="card">
+                    <div class="card-body">
+                        <h4>Ready to Get Started?</h4>
+                        <p class="text-muted">Join our community and start discovering amazing events!</p>
+                        <a href="/events" class="btn btn-primary btn-lg">Browse Events Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private int GetUpcomingEventsCount()
+    {
+        if (!Session.IsLoggedIn) return 0;
+        
+        var allEvents = GetAllEvents();
+        var registeredEvents = allEvents.Where(e => Session.RegisteredEventIds.Contains(e.Id));
+        return registeredEvents.Count(e => e.Date > DateTime.Now);
+    }
+
+    private int GetPastEventsCount()
+    {
+        if (!Session.IsLoggedIn) return 0;
+        
+        var allEvents = GetAllEvents();
+        var registeredEvents = allEvents.Where(e => Session.RegisteredEventIds.Contains(e.Id));
+        return registeredEvents.Count(e => e.Date <= DateTime.Now);
+    }
+
+    private int GetTotalAttendance()
+    {
+        if (!Session.IsLoggedIn) return 0;
+        
+        var allEvents = GetAllEvents();
+        return allEvents.Sum(e => e.Id); // This would be replaced with actual attendance data
+    }
+
+    private List<Event> GetAllEvents()
+    {
+        return new List<Event>
+        {
+            new Event { Id = 1, Name = "Tech Conference 2025", Date = DateTime.Now.AddDays(14), Location = "Seattle, WA" },
+            new Event { Id = 2, Name = "Summer Gala", Date = DateTime.Now.AddDays(30), Location = "San Francisco, CA" },
+            new Event { Id = 3, Name = "Startup Meetup", Date = DateTime.Now.AddDays(7), Location = "Austin, TX" },
+            new Event { Id = 4, Name = "Developer Workshop", Date = DateTime.Now.AddDays(21), Location = "New York, NY" },
+            new Event { Id = 5, Name = "Networking Mixer", Date = DateTime.Now.AddDays(45), Location = "Chicago, IL" }
+        };
+    }
+}

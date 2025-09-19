@@ -1,0 +1,239 @@
+@page "/dashboard"
+@using EventEase.App.Components
+@using EventEase.App.Components.Services
+@inject SessionState Session
+@inject AttendanceService Attendance
+@inject NavigationManager Navigation
+
+<PageTitle>My Dashboard</PageTitle>
+
+<div class="container mt-4">
+    @if (!Session.IsLoggedIn)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h3>Welcome to EventEase</h3>
+                        <p>Please register for an event to access your dashboard.</p>
+                        <a href="/events" class="btn btn-primary">Browse Events</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Welcome back, @Session.CurrentUserName!</h1>
+                    <button class="btn btn-outline-secondary" @onclick="Logout">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- User Info Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Profile Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Name:</strong> @Session.CurrentUserName</p>
+                        <p><strong>Email:</strong> @Session.CurrentUserEmail</p>
+                        @if (!string.IsNullOrEmpty(Session.CurrentUserPhone))
+                        {
+                            <p><strong>Phone:</strong> @Session.CurrentUserPhone</p>
+                        }
+                        @if (Session.LastLoginTime.HasValue)
+                        {
+                            <p><strong>Last Login:</strong> @Session.LastLoginTime.Value.ToString("MMM d, yyyy 'at' h:mm tt")</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Your Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h3 class="text-primary">@Session.RegisteredEventIds.Count</h3>
+                                <small class="text-muted">Events Registered</small>
+                            </div>
+                            <div class="col-6">
+                                <h3 class="text-success">@GetUpcomingEventsCount()</h3>
+                                <small class="text-muted">Upcoming Events</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/events" class="btn btn-primary">Browse All Events</a>
+                            <a href="/events" class="btn btn-outline-primary">Find New Events</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registered Events -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Your Registered Events</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (RegisteredEvents.Any())
+                        {
+                            <div class="row">
+                                @foreach (var eventItem in RegisteredEvents)
+                                {
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h6 class="card-title">@eventItem.Name</h6>
+                                                <p class="card-text">
+                                                    <small class="text-muted">
+                                                        @eventItem.Date.ToString("MMM d, yyyy 'at' h:mm tt")
+                                                    </small>
+                                                </p>
+                                                <p class="card-text">
+                                                    <small>📍 @eventItem.Location</small>
+                                                </p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="badge bg-primary">
+                                                        @Attendance.GetAttendance(eventItem.Id) attendees
+                                                    </span>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="/events/@eventItem.Id" class="btn btn-outline-primary">View</a>
+                                                        <button class="btn btn-outline-danger" @onclick="() => CancelRegistration(eventItem.Id)">
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <h5 class="text-muted">No registered events yet</h5>
+                                <p class="text-muted">Start by browsing our upcoming events!</p>
+                                <a href="/events" class="btn btn-primary">Browse Events</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        @if (Session.RegisteredEventIds.Any())
+        {
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent Activity</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush">
+                                @foreach (var eventId in Session.RegisteredEventIds.Take(5))
+                                {
+                                    var eventItem = GetEventById(eventId);
+                                    if (eventItem != null)
+                                    {
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">Registered for @eventItem.Name</h6>
+                                                <small>@eventItem.Date.ToString("MMM d")</small>
+                                            </div>
+                                            <p class="mb-1">@eventItem.Location</p>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Event> RegisteredEvents = new();
+
+    protected override void OnInitialized()
+    {
+        if (Session.IsLoggedIn)
+        {
+            LoadRegisteredEvents();
+        }
+    }
+
+    private void LoadRegisteredEvents()
+    {
+        var allEvents = GetAllEvents();
+        RegisteredEvents = allEvents.Where(e => Session.RegisteredEventIds.Contains(e.Id)).ToList();
+    }
+
+    private List<Event> GetAllEvents()
+    {
+        return new List<Event>
+        {
+            new Event { Id = 1, Name = "Tech Conference 2025", Date = DateTime.Now.AddDays(14), Location = "Seattle, WA" },
+            new Event { Id = 2, Name = "Summer Gala", Date = DateTime.Now.AddDays(30), Location = "San Francisco, CA" },
+            new Event { Id = 3, Name = "Startup Meetup", Date = DateTime.Now.AddDays(7), Location = "Austin, TX" },
+            new Event { Id = 4, Name = "Developer Workshop", Date = DateTime.Now.AddDays(21), Location = "New York, NY" },
+            new Event { Id = 5, Name = "Networking Mixer", Date = DateTime.Now.AddDays(45), Location = "Chicago, IL" }
+        };
+    }
+
+    private Event? GetEventById(int id)
+    {
+        return GetAllEvents().FirstOrDefault(e => e.Id == id);
+    }
+
+    private int GetUpcomingEventsCount()
+    {
+        return RegisteredEvents.Count(e => e.Date > DateTime.Now);
+    }
+
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+
+    private void CancelRegistration(int eventId)
+    {
+        if (Session.IsLoggedIn)
+        {
+            Attendance.CancelRegistration(Session.CurrentUserEmail!, eventId);
+            Session.RegisteredEventIds.Remove(eventId);
+            LoadRegisteredEvents();
+            StateHasChanged();
+        }
+    }
+}

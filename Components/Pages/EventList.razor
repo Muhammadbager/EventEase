@@ -1,0 +1,168 @@
+@page "/events"
+@using EventEase.App.Components
+@using EventEase.App.Components.Services
+@inject AttendanceService Attendance
+@inject SessionState Session
+
+<PageTitle>Events - EventEase</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Upcoming Events</h1>
+                @if (Session.IsLoggedIn)
+                {
+                    <div class="text-muted">
+                        <small>Welcome back, @Session.CurrentUserName!</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">Featured Events</h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">@GetTotalEventsCount() events available</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (IsLoading)
+                    {
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading events...</span>
+                            </div>
+                            <p class="mt-2">Loading events...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var eventItem in FeaturedEvents)
+                            {
+                                <div class="col-md-6 col-lg-4 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title">@eventItem.Name</h6>
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-calendar-event me-1"></i>
+                                                    @eventItem.Date.ToString("MMM d, yyyy 'at' h:mm tt")
+                                                </small>
+                                            </p>
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-geo-alt me-1"></i>
+                                                    @eventItem.Location
+                                                </small>
+                                            </p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge bg-primary">
+                                                    @Attendance.GetAttendance(eventItem.Id) attendees
+                                                </span>
+                                                @if (Session.IsLoggedIn && Session.IsRegisteredForEvent(eventItem.Id))
+                                                {
+                                                    <span class="badge bg-success">Registered</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-transparent">
+                                            <div class="d-grid gap-2">
+                                                <a href="/events/@eventItem.Id" class="btn btn-outline-primary btn-sm">View Details</a>
+                                                @if (Session.IsLoggedIn && !Session.IsRegisteredForEvent(eventItem.Id))
+                                                {
+                                                    <a href="/register/@eventItem.Id" class="btn btn-primary btn-sm">Register</a>
+                                                }
+                                                else if (Session.IsLoggedIn && Session.IsRegisteredForEvent(eventItem.Id))
+                                                {
+                                                    <a href="/dashboard" class="btn btn-success btn-sm">View in Dashboard</a>
+                                                }
+                                                else
+                                                {
+                                                    <a href="/register/@eventItem.Id" class="btn btn-primary btn-sm">Register</a>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (AllEvents.Count > FeaturedEvents.Count)
+                        {
+                            <div class="text-center mt-4">
+                                <button class="btn btn-outline-primary" @onclick="LoadMoreEvents">
+                                    Load More Events (@(AllEvents.Count - FeaturedEvents.Count) remaining)
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Event> AllEvents = new();
+    private List<Event> FeaturedEvents = new();
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        IsLoading = true;
+        
+        // Simulate loading delay
+        await Task.Delay(500);
+        
+        AllEvents = GetEventList();
+        
+        // Show first 6 events as featured
+        FeaturedEvents = AllEvents.Take(6).ToList();
+        
+        IsLoading = false;
+    }
+
+    private void LoadMoreEvents()
+    {
+        var currentCount = FeaturedEvents.Count;
+        var remainingEvents = AllEvents.Skip(currentCount).Take(6).ToList();
+        FeaturedEvents.AddRange(remainingEvents);
+    }
+
+    private List<Event> GetEventList()
+    {
+        return new List<Event>
+        {
+            new Event { Id = 1, Name = "Tech Conference 2025", Date = DateTime.Now.AddDays(14), Location = "Seattle, WA" },
+            new Event { Id = 2, Name = "Summer Gala", Date = DateTime.Now.AddDays(30), Location = "San Francisco, CA" },
+            new Event { Id = 3, Name = "Startup Meetup", Date = DateTime.Now.AddDays(7), Location = "Austin, TX" },
+            new Event { Id = 4, Name = "Developer Workshop", Date = DateTime.Now.AddDays(21), Location = "New York, NY" },
+            new Event { Id = 5, Name = "Networking Mixer", Date = DateTime.Now.AddDays(45), Location = "Chicago, IL" },
+            new Event { Id = 6, Name = "AI & Machine Learning Summit", Date = DateTime.Now.AddDays(60), Location = "Boston, MA" },
+            new Event { Id = 7, Name = "Digital Marketing Conference", Date = DateTime.Now.AddDays(90), Location = "Los Angeles, CA" },
+            new Event { Id = 8, Name = "Cybersecurity Workshop", Date = DateTime.Now.AddDays(120), Location = "Denver, CO" },
+            new Event { Id = 9, Name = "Cloud Computing Expo", Date = DateTime.Now.AddDays(150), Location = "Miami, FL" },
+            new Event { Id = 10, Name = "Data Science Meetup", Date = DateTime.Now.AddDays(180), Location = "Portland, OR" }
+        };
+    }
+
+    private int GetTotalEventsCount()
+    {
+        return AllEvents.Count;
+    }
+}

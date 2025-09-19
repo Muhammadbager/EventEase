@@ -1,0 +1,21 @@
+@using EventEase.App.Components
+@namespace EventEase.App.Components
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">@EventItem.Name</h5>
+        <h6 class="card-subtitle mb-2 text-muted">@EventItem.Date.ToString("MMMM d, yyyy h:mm tt")</h6>
+        <p class="card-text">Location: @EventItem.Location</p>
+        <a class="btn btn-primary me-2" href="/events/@EventItem.Id">Details</a>
+        <a class="btn btn-outline-secondary" href="/register/@EventItem.Id">Register</a>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Event EventItem { get; set; } = new Event();
+
+    // Example of two-way binding field for future editable card scenarios
+    [Parameter]
+    public Event? EditableEvent { get; set; }
+}

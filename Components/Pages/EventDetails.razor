@@ -1,0 +1,171 @@
+@page "/events/{id:int}"
+@using EventEase.App.Components
+@using EventEase.App.Components.Services
+@inject NavigationManager Navigation
+@inject AttendanceService Attendance
+@inject SessionState Session
+
+<div class="container mt-4">
+    @if (SelectedEvent is null)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h3 class="text-danger">Event Not Found</h3>
+                        <p>The requested event could not be found.</p>
+                        <button class="btn btn-secondary" @onclick="BackToEvents">Back to Events</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h1 class="h3 mb-0">@SelectedEvent.Name</h1>
+                            <span class="badge bg-primary fs-6">@Attendance.GetAttendance(SelectedEvent.Id) attendees</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5><i class="bi bi-calendar-event text-primary me-2"></i>Event Date</h5>
+                                <p class="fs-5">@SelectedEvent.Date.ToString("dddd, MMMM d, yyyy")</p>
+                                <p class="text-muted">@SelectedEvent.Date.ToString("h:mm tt")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h5><i class="bi bi-geo-alt text-success me-2"></i>Location</h5>
+                                <p class="fs-5">@SelectedEvent.Location</p>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Event Description</h5>
+                                <p>Join us for an exciting event featuring industry experts, networking opportunities, and hands-on workshops. This event is perfect for professionals looking to expand their knowledge and connect with like-minded individuals.</p>
+                                
+                                <h6 class="mt-4">What to Expect:</h6>
+                                <ul>
+                                    <li>Keynote presentations from industry leaders</li>
+                                    <li>Interactive workshops and breakout sessions</li>
+                                    <li>Networking opportunities with peers</li>
+                                    <li>Refreshments and lunch provided</li>
+                                    <li>Certificate of attendance</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Registration</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Session.IsLoggedIn && Session.IsRegisteredForEvent(SelectedEvent.Id))
+                        {
+                            <div class="alert alert-success">
+                                <h6 class="alert-heading">You're Registered!</h6>
+                                <p class="mb-0">You're all set for this event.</p>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a href="/dashboard" class="btn btn-success">View in Dashboard</a>
+                                <button class="btn btn-outline-danger" @onclick="CancelRegistration">Cancel Registration</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center mb-3">
+                                <h6>Ready to Join?</h6>
+                                <p class="text-muted">Register now to secure your spot!</p>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a href="/register/@SelectedEvent.Id" class="btn btn-primary btn-lg">Register Now</a>
+                                <a href="/events" class="btn btn-outline-secondary">Browse Other Events</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Event Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h4 class="text-primary">@Attendance.GetAttendance(SelectedEvent.Id)</h4>
+                                <small class="text-muted">Attendees</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success">@GetDaysUntilEvent()</h4>
+                                <small class="text-muted">Days Left</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private Event? SelectedEvent;
+
+    protected override void OnInitialized()
+    {
+        var list = GetEventList();
+        SelectedEvent = list.FirstOrDefault(e => e.Id == id);
+    }
+
+    private List<Event> GetEventList()
+    {
+        return new List<Event>
+        {
+            new Event { Id = 1, Name = "Tech Conference 2025", Date = DateTime.Now.AddDays(14), Location = "Seattle, WA" },
+            new Event { Id = 2, Name = "Summer Gala", Date = DateTime.Now.AddDays(30), Location = "San Francisco, CA" },
+            new Event { Id = 3, Name = "Startup Meetup", Date = DateTime.Now.AddDays(7), Location = "Austin, TX" },
+            new Event { Id = 4, Name = "Developer Workshop", Date = DateTime.Now.AddDays(21), Location = "New York, NY" },
+            new Event { Id = 5, Name = "Networking Mixer", Date = DateTime.Now.AddDays(45), Location = "Chicago, IL" },
+            new Event { Id = 6, Name = "AI & Machine Learning Summit", Date = DateTime.Now.AddDays(60), Location = "Boston, MA" },
+            new Event { Id = 7, Name = "Digital Marketing Conference", Date = DateTime.Now.AddDays(90), Location = "Los Angeles, CA" },
+            new Event { Id = 8, Name = "Cybersecurity Workshop", Date = DateTime.Now.AddDays(120), Location = "Denver, CO" },
+            new Event { Id = 9, Name = "Cloud Computing Expo", Date = DateTime.Now.AddDays(150), Location = "Miami, FL" },
+            new Event { Id = 10, Name = "Data Science Meetup", Date = DateTime.Now.AddDays(180), Location = "Portland, OR" }
+        };
+    }
+
+    private void BackToEvents()
+    {
+        Navigation.NavigateTo("/events");
+    }
+
+    private void CancelRegistration()
+    {
+        if (Session.IsLoggedIn && SelectedEvent != null)
+        {
+            Attendance.CancelRegistration(Session.CurrentUserEmail!, SelectedEvent.Id);
+            Session.RegisteredEventIds.Remove(SelectedEvent.Id);
+            StateHasChanged();
+        }
+    }
+
+    private int GetDaysUntilEvent()
+    {
+        if (SelectedEvent == null) return 0;
+        var days = (SelectedEvent.Date - DateTime.Now).Days;
+        return Math.Max(0, days);
+    }
+}
